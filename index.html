@@ -308,13 +308,25 @@
 
   /* ---------- PIN LOCK ---------- */
   function checkUnlocked(){
-    const until = parseInt(localStorage.getItem(LOCK_KEY)||'0',10);
-    return Date.now() < until;
+    try{
+      const until = parseInt(localStorage.getItem(LOCK_KEY)||'0',10);
+      return Date.now() < until;
+    }catch(e){
+      return false;
+    }
   }
   function unlock(){
-    localStorage.setItem(LOCK_KEY, String(Date.now() + 24*3600*1000));
-    document.getElementById('lockScreen').classList.add('hidden');
-    load();
+    try{ localStorage.setItem(LOCK_KEY, String(Date.now() + 24*3600*1000)); }catch(e){ /* stocare indisponibilă în acest mediu — continuăm oricum */ }
+    const pinInput = document.getElementById('pinInput');
+    const lockScreen = document.getElementById('lockScreen');
+    pinInput.blur(); // închide tastatura înainte de a ascunde ecranul, ca să evităm un bug de randare din Safari iOS
+    setTimeout(()=>{
+      lockScreen.classList.add('hidden');
+      lockScreen.style.display = 'none';
+      void document.body.offsetHeight; // forțează o redesenare a paginii
+      window.scrollTo(0,0);
+      load();
+    }, 80);
   }
   function attemptUnlock(){
     const val = document.getElementById('pinInput').value;
@@ -330,7 +342,7 @@
   document.getElementById('pinSubmit').addEventListener('click', attemptUnlock);
   document.getElementById('pinInput').addEventListener('keydown', e => { if(e.key==='Enter') attemptUnlock(); });
   document.getElementById('lockBtn').addEventListener('click', () => {
-    localStorage.removeItem(LOCK_KEY);
+    try{ localStorage.removeItem(LOCK_KEY); }catch(e){}
     location.reload();
   });
   function initLock(){
