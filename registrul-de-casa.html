@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Registrul de Casă</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F6F3EC;
+    --card:#FFFFFF;
+    --ink:#24261F;
+    --muted:#7A7563;
+    --line:#DDD6C5;
+    --sage:#3F6B52;
+    --sage-bg:#E7EEE7;
+    --ochre:#A6752C;
+    --ochre-bg:#F3E9D6;
+    --brick:#9C3F2E;
+    --brick-bg:#F3E1DB;
+    --gold:#B8912A;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 20px 80px;}
+
+  /* header */
+  header{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:8px;margin-bottom:28px;border-bottom:1px solid var(--line);padding-bottom:18px;}
+  h1{
+    font-family:'Fraunces', serif;
+    font-weight:700;
+    font-size:clamp(28px,4vw,40px);
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+  .save-indicator{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);opacity:0;transition:opacity .4s;}
+  .save-indicator.show{opacity:1;}
+  .updated{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);}
+  .backup-row{margin-top:6px;display:flex;gap:12px;justify-content:flex-end;}
+  .link-btn{background:none;border:none;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:2px;}
+  .link-btn:hover{color:var(--ink);}
+
+  /* summary */
+  .summary{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:24px 28px;margin-bottom:36px;}
+  .summary-top{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:10px;margin-bottom:16px;}
+  .summary-label{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+  .summary-sold{font-family:'Fraunces',serif;font-weight:600;font-size:clamp(30px,5vw,44px);}
+  .sold-pos{color:var(--sage);}
+  .sold-neg{color:var(--brick);}
+  .bar{height:26px;border-radius:4px;overflow:hidden;display:flex;background:var(--paper);border:1px solid var(--line);}
+  .bar-seg{height:100%;}
+  .bar-chelt{background:var(--ochre);}
+  .bar-rate{background:var(--brick);}
+  .bar-ramas{background:var(--sage);}
+  .bar-empty{width:100%;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);}
+  .legend{display:flex;gap:22px;flex-wrap:wrap;margin-top:12px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .dot{width:9px;height:9px;border-radius:2px;display:inline-block;}
+  .dot-chelt{background:var(--ochre);}
+  .dot-rate{background:var(--brick);}
+  .dot-ramas{background:var(--sage);}
+  .deficit-note{margin-top:10px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--brick);}
+
+  /* columns */
+  .cols{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;}
+  @media (max-width:860px){.cols{grid-template-columns:1fr;}}
+
+  section.card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:22px 22px 18px;display:flex;flex-direction:column;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;}
+  .sec-title{font-family:'Fraunces',serif;font-weight:600;font-size:22px;margin:0 0 3px;}
+  .sec-sub{font-size:12.5px;color:var(--muted);margin-bottom:14px;}
+  .sec-title.venit{color:var(--sage);}
+  .sec-title.chelt{color:var(--ochre);}
+  .sec-title.datorie{color:var(--brick);}
+
+  .list{list-style:none;margin:0;padding:0;border-top:1px solid var(--line);}
+  .row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);gap:8px;}
+  .row-name{font-size:14.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .row-amt{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:500;white-space:nowrap;}
+  .row-actions{display:flex;gap:4px;}
+  .icon-btn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;padding:3px 5px;border-radius:3px;line-height:1;}
+  .icon-btn:hover{background:var(--paper);color:var(--ink);}
+  .empty-state{padding:16px 0;color:var(--muted);font-size:13px;font-style:italic;}
+
+  .totals-row{display:flex;justify-content:space-between;padding-top:12px;margin-top:2px;font-family:'IBM Plex Mono',monospace;font-size:13.5px;font-weight:600;}
+
+  .add-toggle{margin-top:14px;background:none;border:1px dashed var(--line);border-radius:4px;padding:9px;font-family:'IBM Plex Sans';font-size:13px;color:var(--muted);cursor:pointer;text-align:center;}
+  .add-toggle:hover{border-color:var(--muted);color:var(--ink);}
+
+  .add-form{margin-top:12px;display:none;flex-direction:column;gap:8px;background:var(--paper);border:1px solid var(--line);border-radius:5px;padding:14px;}
+  .add-form.open{display:flex;}
+  .add-form input{font-family:'IBM Plex Sans';font-size:13.5px;padding:8px 9px;border:1px solid var(--line);border-radius:4px;background:var(--card);color:var(--ink);width:100%;}
+  .add-form input:focus{outline:2px solid var(--ink);outline-offset:-1px;}
+  .field-label{font-size:11px;color:var(--muted);margin-bottom:-4px;}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px;}
+  .chip{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:4px 9px;border:1px solid var(--line);border-radius:20px;background:var(--card);cursor:pointer;color:var(--muted);}
+  .chip:hover{border-color:var(--ink);color:var(--ink);}
+  .form-actions{display:flex;gap:8px;margin-top:4px;}
+  .btn{font-family:'IBM Plex Sans';font-size:13px;font-weight:600;padding:8px 14px;border-radius:4px;border:1px solid var(--ink);background:var(--ink);color:var(--paper);cursor:pointer;}
+  .btn:hover{opacity:.85;}
+  .btn-cancel{background:none;color:var(--muted);border:1px solid var(--line);font-weight:500;}
+  .btn-cancel:hover{color:var(--ink);border-color:var(--muted);}
+
+  /* debt specific */
+  .debt-item{padding:12px 0;border-bottom:1px solid var(--line);}
+  .debt-top{display:flex;justify-content:space-between;align-items:center;gap:8px;}
+  .debt-name{font-size:14.5px;font-weight:600;}
+  .debt-figures{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);margin-top:3px;}
+  .progress-track{height:6px;background:var(--paper);border-radius:3px;overflow:hidden;margin-top:8px;border:1px solid var(--line);}
+  .progress-fill{height:100%;background:var(--brick);}
+  .debt-actions{display:flex;justify-content:space-between;align-items:center;margin-top:8px;}
+  .pay-btn{font-family:'IBM Plex Mono',monospace;font-size:11.5px;background:var(--brick-bg);color:var(--brick);border:none;border-radius:20px;padding:5px 11px;cursor:pointer;}
+  .pay-btn:hover{opacity:.8;}
+  .pay-btn:disabled{opacity:.35;cursor:default;}
+
+  .loading{text-align:center;padding:60px 0;color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:13px;}
+  .hidden{display:none;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1>Registrul de Casă</h1>
+    </div>
+    <div style="text-align:right;">
+      <div class="save-indicator" id="saveIndicator">salvat ✓</div>
+      <div class="updated" id="updatedAt"></div>
+      <div class="backup-row">
+        <button class="link-btn" id="exportBtn">↓ exportă backup</button>
+        <button class="link-btn" id="importBtn">↑ importă backup</button>
+        <input type="file" id="importFile" accept="application/json" class="hidden">
+      </div>
+    </div>
+  </header>
+
+  <div id="loading" class="loading">Se încarcă registrul…</div>
+
+  <div id="app" class="hidden">
+
+    <div class="summary">
+      <div class="summary-top">
+        <div>
+          <div class="summary-label" id="soldLabel">Sold lunar</div>
+          <div class="summary-sold" id="soldValue">0 €</div>
+        </div>
+      </div>
+      <div class="bar" id="bar"></div>
+      <div class="legend">
+        <span><i class="dot dot-chelt"></i>Cheltuieli fixe: <b id="legChelt">0 €</b></span>
+        <span><i class="dot dot-rate"></i>Rate datorii: <b id="legRate">0 €</b></span>
+        <span><i class="dot dot-ramas"></i>Rămas: <b id="legRamas">0 €</b></span>
+      </div>
+      <div class="deficit-note hidden" id="deficitNote"></div>
+    </div>
+
+    <div class="cols">
+
+      <!-- VENITURI -->
+      <section class="card">
+        <div class="eyebrow">Intră</div>
+        <div class="sec-title venit">Venituri</div>
+        <div class="sec-sub">Bani care intră în fiecare lună</div>
+        <ul class="list" id="listVenituri"></ul>
+        <div class="totals-row"><span>Total</span><span id="totVenituri">0 €</span></div>
+        <button class="add-toggle" data-target="formVenit">+ adaugă un venit</button>
+        <div class="add-form" id="formVenit">
+          <div class="field-label">Sursă (ex: Salariu Paul, Alocație)</div>
+          <input type="text" id="vNume" placeholder="Nume">
+          <div class="chips">
+            <button type="button" class="chip" data-fill="vNume" data-val="Salariu Paul">Salariu Paul</button>
+            <button type="button" class="chip" data-fill="vNume" data-val="Salariu partener">Salariu partener</button>
+            <button type="button" class="chip" data-fill="vNume" data-val="Alocație copil">Alocație copil</button>
+          </div>
+          <div class="field-label">Sumă lunară (€)</div>
+          <input type="number" id="vSuma" placeholder="0" min="0" step="0.01">
+          <div class="form-actions">
+            <button class="btn" id="vSave">Adaugă</button>
+            <button class="btn btn-cancel" id="vCancel">Anulează</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- CHELTUIELI -->
+      <section class="card">
+        <div class="eyebrow">Iese</div>
+        <div class="sec-title chelt">Cheltuieli fixe</div>
+        <div class="sec-sub">Facturi și costuri care se repetă</div>
+        <ul class="list" id="listCheltuieli"></ul>
+        <div class="totals-row"><span>Total</span><span id="totCheltuieli">0 €</span></div>
+        <button class="add-toggle" data-target="formChelt">+ adaugă o cheltuială</button>
+        <div class="add-form" id="formChelt">
+          <div class="field-label">Denumire (ex: Chirie, Curent, Internet)</div>
+          <input type="text" id="cNume" placeholder="Nume">
+          <div class="chips">
+            <button type="button" class="chip" data-fill="cNume" data-val="Chirie">Chirie</button>
+            <button type="button" class="chip" data-fill="cNume" data-val="Curent">Curent</button>
+            <button type="button" class="chip" data-fill="cNume" data-val="Internet">Internet</button>
+            <button type="button" class="chip" data-fill="cNume" data-val="Telefon">Telefon</button>
+            <button type="button" class="chip" data-fill="cNume" data-val="Asigurare">Asigurare</button>
+          </div>
+          <div class="field-label">Sumă lunară (€)</div>
+          <input type="number" id="cSuma" placeholder="0" min="0" step="0.01">
+          <div class="form-actions">
+            <button class="btn" id="cSave">Adaugă</button>
+            <button class="btn btn-cancel" id="cCancel">Anulează</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- DATORII -->
+      <section class="card">
+        <div class="eyebrow">De achitat</div>
+        <div class="sec-title datorie">Datorii</div>
+        <div class="sec-sub">Ce mai este de plătit</div>
+        <ul class="list" id="listDatorii"></ul>
+        <div class="totals-row"><span>Rate/lună</span><span id="totRate">0 €</span></div>
+        <div class="totals-row" style="margin-top:-4px;"><span>Total rămas</span><span id="totRamas">0 €</span></div>
+        <button class="add-toggle" data-target="formDatorie">+ adaugă o datorie</button>
+        <div class="add-form" id="formDatorie">
+          <div class="field-label">Cui datorăm</div>
+          <input type="text" id="dCreditor" placeholder="ex: IFN, Bancă, Persoană">
+          <div class="field-label">Sumă totală inițială (€)</div>
+          <input type="number" id="dTotal" placeholder="0" min="0" step="0.01">
+          <div class="field-label">Sumă rămasă de plată (€)</div>
+          <input type="number" id="dRamas" placeholder="0" min="0" step="0.01">
+          <div class="field-label">Rată lunară (€)</div>
+          <input type="number" id="dRata" placeholder="0" min="0" step="0.01">
+          <div class="form-actions">
+            <button class="btn" id="dSave">Adaugă</button>
+            <button class="btn btn-cancel" id="dCancel">Anulează</button>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const STORAGE_KEY = 'buget-date';
+  let state = { venituri: [], cheltuieli: [], datorii: [] };
+  let editing = { type: null, id: null };
+
+  const fmt = n => (Number(n)||0).toLocaleString('de-DE',{minimumFractionDigits:0,maximumFractionDigits:2}) + ' €';
+  const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+
+  function defaultState(){
+    return {
+      venituri: [
+        {id:uid(), nume:'Salariu Paul', suma:0},
+        {id:uid(), nume:'Salariu partener', suma:0},
+        {id:uid(), nume:'Alocație copil', suma:0}
+      ],
+      cheltuieli: [
+        {id:uid(), nume:'Chirie', suma:0},
+        {id:uid(), nume:'Curent', suma:0},
+        {id:uid(), nume:'Internet', suma:0}
+      ],
+      datorii: []
+    };
+  }
+
+  function load(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw){
+        state = JSON.parse(raw);
+        state.venituri = state.venituri || [];
+        state.cheltuieli = state.cheltuieli || [];
+        state.datorii = state.datorii || [];
+      }else{
+        // nimic salvat încă — pornim cu câteva rânduri goale, gata de completat
+        state = defaultState();
+      }
+    }catch(e){
+      state = defaultState();
+    }
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    render();
+  }
+
+  function save(){
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      const ind = document.getElementById('saveIndicator');
+      ind.classList.add('show');
+      setTimeout(()=>ind.classList.remove('show'), 1300);
+      document.getElementById('updatedAt').textContent = 'actualizat ' + new Date().toLocaleString('ro-RO',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    }catch(e){
+      console.error('Eroare la salvare', e);
+      alert('Nu am putut salva — verifică dacă browserul blochează stocarea locală (ex: mod privat/incognito).');
+    }
+  }
+
+  function totalVenituri(){ return state.venituri.reduce((s,v)=>s+Number(v.suma||0),0); }
+  function totalCheltuieli(){ return state.cheltuieli.reduce((s,v)=>s+Number(v.suma||0),0); }
+  function totalRata(){ return state.datorii.reduce((s,v)=>s+Number(v.rataLunara||0),0); }
+  function totalRamasDatorii(){ return state.datorii.reduce((s,v)=>s+Number(v.sumaRamasa||0),0); }
+
+  function renderSummary(){
+    const venit = totalVenituri();
+    const chelt = totalCheltuieli();
+    const rata = totalRata();
+    const sold = venit - chelt - rata;
+
+    document.getElementById('soldLabel').textContent = sold >= 0 ? 'Sold lunar (excedent)' : 'Sold lunar (deficit)';
+    const soldEl = document.getElementById('soldValue');
+    soldEl.textContent = (sold >= 0 ? '+' : '−') + fmt(Math.abs(sold));
+    soldEl.className = 'summary-sold ' + (sold >= 0 ? 'sold-pos' : 'sold-neg');
+
+    document.getElementById('legChelt').textContent = fmt(chelt);
+    document.getElementById('legRate').textContent = fmt(rata);
+    document.getElementById('legRamas').textContent = fmt(Math.max(0, sold));
+
+    const bar = document.getElementById('bar');
+    const note = document.getElementById('deficitNote');
+    bar.innerHTML = '';
+    if(venit <= 0){
+      bar.innerHTML = '<div class="bar-empty">adaugă venituri pentru a vedea balanța</div>';
+      note.classList.add('hidden');
+    }else{
+      const cheltPct = Math.min(100, chelt/venit*100);
+      const ratePct = Math.min(100-cheltPct, rata/venit*100);
+      const ramasPct = Math.max(0, 100-cheltPct-ratePct);
+      const segC = document.createElement('div');
+      segC.className='bar-seg bar-chelt'; segC.style.width = cheltPct+'%';
+      const segR = document.createElement('div');
+      segR.className='bar-seg bar-rate'; segR.style.width = ratePct+'%';
+      const segRam = document.createElement('div');
+      segRam.className='bar-seg bar-ramas'; segRam.style.width = ramasPct+'%';
+      bar.appendChild(segC); bar.appendChild(segR); bar.appendChild(segRam);
+
+      if(sold < 0){
+        note.classList.remove('hidden');
+        note.textContent = 'Cheltuielile și ratele depășesc veniturile cu ' + fmt(Math.abs(sold)) + ' pe lună.';
+      }else{
+        note.classList.add('hidden');
+      }
+    }
+  }
+
+  function renderVenituri(){
+    const ul = document.getElementById('listVenituri');
+    ul.innerHTML = '';
+    if(state.venituri.length===0){
+      ul.innerHTML = '<div class="empty-state">Niciun venit adăugat încă.</div>';
+    }
+    state.venituri.forEach(v=>{
+      const li = document.createElement('li');
+      li.className='row';
+      li.innerHTML = `<span class="row-name">${esc(v.nume)}</span>
+        <span class="row-amt">${fmt(v.suma)}</span>
+        <span class="row-actions">
+          <button class="icon-btn" data-edit="venit" data-id="${v.id}" title="Editează">✎</button>
+          <button class="icon-btn" data-del="venit" data-id="${v.id}" title="Șterge">✕</button>
+        </span>`;
+      ul.appendChild(li);
+    });
+    document.getElementById('totVenituri').textContent = fmt(totalVenituri());
+  }
+
+  function renderCheltuieli(){
+    const ul = document.getElementById('listCheltuieli');
+    ul.innerHTML = '';
+    if(state.cheltuieli.length===0){
+      ul.innerHTML = '<div class="empty-state">Nicio cheltuială adăugată încă.</div>';
+    }
+    state.cheltuieli.forEach(c=>{
+      const li = document.createElement('li');
+      li.className='row';
+      li.innerHTML = `<span class="row-name">${esc(c.nume)}</span>
+        <span class="row-amt">${fmt(c.suma)}</span>
+        <span class="row-actions">
+          <button class="icon-btn" data-edit="cheltuiala" data-id="${c.id}" title="Editează">✎</button>
+          <button class="icon-btn" data-del="cheltuiala" data-id="${c.id}" title="Șterge">✕</button>
+        </span>`;
+      ul.appendChild(li);
+    });
+    document.getElementById('totCheltuieli').textContent = fmt(totalCheltuieli());
+  }
+
+  function renderDatorii(){
+    const ul = document.getElementById('listDatorii');
+    ul.innerHTML = '';
+    if(state.datorii.length===0){
+      ul.innerHTML = '<div class="empty-state">Nicio datorie adăugată încă.</div>';
+    }
+    state.datorii.forEach(d=>{
+      const total = Number(d.sumaTotala||0);
+      const ramas = Number(d.sumaRamasa||0);
+      const pct = total > 0 ? Math.min(100, Math.max(0, (total-ramas)/total*100)) : 0;
+      const li = document.createElement('li');
+      li.className='debt-item';
+      li.innerHTML = `
+        <div class="debt-top">
+          <span class="debt-name">${esc(d.creditor)}</span>
+          <span class="row-actions">
+            <button class="icon-btn" data-edit="datorie" data-id="${d.id}" title="Editează">✎</button>
+            <button class="icon-btn" data-del="datorie" data-id="${d.id}" title="Șterge">✕</button>
+          </span>
+        </div>
+        <div class="debt-figures">rămas ${fmt(ramas)} din ${fmt(total)} · rată ${fmt(d.rataLunara)}/lună</div>
+        <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+        <div class="debt-actions">
+          <span class="debt-figures">${pct.toFixed(0)}% achitat</span>
+          <button class="pay-btn" data-pay="${d.id}" ${ramas<=0?'disabled':''}>achită o rată</button>
+        </div>`;
+      ul.appendChild(li);
+    });
+    document.getElementById('totRate').textContent = fmt(totalRata());
+    document.getElementById('totRamas').textContent = fmt(totalRamasDatorii());
+  }
+
+  function render(){
+    renderSummary();
+    renderVenituri();
+    renderCheltuieli();
+    renderDatorii();
+  }
+
+  // --- form toggling ---
+  document.querySelectorAll('.add-toggle').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const form = document.getElementById(btn.dataset.target);
+      const wasOpen = form.classList.contains('open');
+      closeAllForms();
+      if(!wasOpen) form.classList.add('open');
+    });
+  });
+  function closeAllForms(){
+    document.querySelectorAll('.add-form').forEach(f=>f.classList.remove('open'));
+    editing = {type:null, id:null};
+    document.getElementById('vSave').textContent='Adaugă';
+    document.getElementById('cSave').textContent='Adaugă';
+    document.getElementById('dSave').textContent='Adaugă';
+    document.getElementById('vNume').value=''; document.getElementById('vSuma').value='';
+    document.getElementById('cNume').value=''; document.getElementById('cSuma').value='';
+    document.getElementById('dCreditor').value=''; document.getElementById('dTotal').value='';
+    document.getElementById('dRamas').value=''; document.getElementById('dRata').value='';
+  }
+
+  // chips fill
+  document.querySelectorAll('.chip').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      document.getElementById(chip.dataset.fill).value = chip.dataset.val;
+    });
+  });
+
+  // cancel buttons
+  document.getElementById('vCancel').addEventListener('click', closeAllForms);
+  document.getElementById('cCancel').addEventListener('click', closeAllForms);
+  document.getElementById('dCancel').addEventListener('click', closeAllForms);
+
+  // save venit
+  document.getElementById('vSave').addEventListener('click', ()=>{
+    const nume = document.getElementById('vNume').value.trim();
+    const suma = parseFloat(document.getElementById('vSuma').value)||0;
+    if(!nume) return;
+    if(editing.type==='venit'){
+      const item = state.venituri.find(x=>x.id===editing.id);
+      if(item){ item.nume=nume; item.suma=suma; }
+    }else{
+      state.venituri.push({id:uid(), nume, suma});
+    }
+    closeAllForms(); render(); save();
+  });
+
+  // save cheltuiala
+  document.getElementById('cSave').addEventListener('click', ()=>{
+    const nume = document.getElementById('cNume').value.trim();
+    const suma = parseFloat(document.getElementById('cSuma').value)||0;
+    if(!nume) return;
+    if(editing.type==='cheltuiala'){
+      const item = state.cheltuieli.find(x=>x.id===editing.id);
+      if(item){ item.nume=nume; item.suma=suma; }
+    }else{
+      state.cheltuieli.push({id:uid(), nume, suma});
+    }
+    closeAllForms(); render(); save();
+  });
+
+  // save datorie
+  document.getElementById('dSave').addEventListener('click', ()=>{
+    const creditor = document.getElementById('dCreditor').value.trim();
+    const sumaTotala = parseFloat(document.getElementById('dTotal').value)||0;
+    const sumaRamasa = parseFloat(document.getElementById('dRamas').value)||0;
+    const rataLunara = parseFloat(document.getElementById('dRata').value)||0;
+    if(!creditor) return;
+    if(editing.type==='datorie'){
+      const item = state.datorii.find(x=>x.id===editing.id);
+      if(item){ Object.assign(item, {creditor, sumaTotala, sumaRamasa, rataLunara}); }
+    }else{
+      state.datorii.push({id:uid(), creditor, sumaTotala, sumaRamasa, rataLunara});
+    }
+    closeAllForms(); render(); save();
+  });
+
+  // delegated: edit / delete / pay
+  document.getElementById('app').addEventListener('click', (e)=>{
+    const editBtn = e.target.closest('[data-edit]');
+    const delBtn = e.target.closest('[data-del]');
+    const payBtn = e.target.closest('[data-pay]');
+
+    if(editBtn){
+      const type = editBtn.dataset.edit, id = editBtn.dataset.id;
+      if(type==='venit'){
+        const item = state.venituri.find(x=>x.id===id); if(!item) return;
+        closeAllForms();
+        document.getElementById('formVenit').classList.add('open');
+        document.getElementById('vNume').value = item.nume;
+        document.getElementById('vSuma').value = item.suma;
+        document.getElementById('vSave').textContent='Actualizează';
+        editing = {type:'venit', id};
+        document.getElementById('formVenit').scrollIntoView({behavior:'smooth', block:'center'});
+      }else if(type==='cheltuiala'){
+        const item = state.cheltuieli.find(x=>x.id===id); if(!item) return;
+        closeAllForms();
+        document.getElementById('formChelt').classList.add('open');
+        document.getElementById('cNume').value = item.nume;
+        document.getElementById('cSuma').value = item.suma;
+        document.getElementById('cSave').textContent='Actualizează';
+        editing = {type:'cheltuiala', id};
+        document.getElementById('formChelt').scrollIntoView({behavior:'smooth', block:'center'});
+      }else if(type==='datorie'){
+        const item = state.datorii.find(x=>x.id===id); if(!item) return;
+        closeAllForms();
+        document.getElementById('formDatorie').classList.add('open');
+        document.getElementById('dCreditor').value = item.creditor;
+        document.getElementById('dTotal').value = item.sumaTotala;
+        document.getElementById('dRamas').value = item.sumaRamasa;
+        document.getElementById('dRata').value = item.rataLunara;
+        document.getElementById('dSave').textContent='Actualizează';
+        editing = {type:'datorie', id};
+        document.getElementById('formDatorie').scrollIntoView({behavior:'smooth', block:'center'});
+      }
+      return;
+    }
+
+    if(delBtn){
+      const type = delBtn.dataset.del, id = delBtn.dataset.id;
+      const map = {venit:'venituri', cheltuiala:'cheltuieli', datorie:'datorii'};
+      const list = state[map[type]];
+      const item = list.find(x=>x.id===id);
+      const label = item ? (item.nume || item.creditor) : '';
+      if(confirm('Ștergi „' + label + '"?')){
+        state[map[type]] = list.filter(x=>x.id!==id);
+        render(); save();
+      }
+      return;
+    }
+
+    if(payBtn){
+      const id = payBtn.dataset.pay;
+      const item = state.datorii.find(x=>x.id===id);
+      if(item){
+        item.sumaRamasa = Math.max(0, Number(item.sumaRamasa||0) - Number(item.rataLunara||0));
+        render(); save();
+      }
+      return;
+    }
+  });
+
+  // --- backup export / import ---
+  document.getElementById('exportBtn').addEventListener('click', ()=>{
+    const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0,10);
+    a.href = url;
+    a.download = 'registrul-de-casa-backup-' + stamp + '.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('importBtn').addEventListener('click', ()=>{
+    document.getElementById('importFile').click();
+  });
+
+  document.getElementById('importFile').addEventListener('change', (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try{
+        const data = JSON.parse(reader.result);
+        if(!confirm('Imporți acest backup? Datele curente din aplicație vor fi înlocuite.')) return;
+        state = {
+          venituri: data.venituri || [],
+          cheltuieli: data.cheltuieli || [],
+          datorii: data.datorii || []
+        };
+        render();
+        save();
+      }catch(err){
+        alert('Fișierul nu pare a fi un backup valid.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
+  load();
+})();
+</script>
+</body>
+</html>
